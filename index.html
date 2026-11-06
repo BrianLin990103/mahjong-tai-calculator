@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>麻將台數計算器｜台灣16張</title>
+<meta name="description" content="台灣16張麻將台數計算器：勾選莊家、連莊、花牌、牌型，自動算台數與每家應付金額。">
+<style>
+:root{--g:#0f5132;--g2:#198754;--bg:#f4f1e8;--card:#fff;--ink:#1d1d1b;--mut:#6b6b66;--gold:#c8962b}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+header{background:var(--g);color:#fff;padding:18px 16px;text-align:center}
+header h1{margin:0;font-size:22px;letter-spacing:2px}
+header p{margin:4px 0 0;font-size:13px;opacity:.85}
+main{max-width:920px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:820px){main{grid-template-columns:1.4fr 1fr;align-items:start}.sticky{position:sticky;top:12px}}
+.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:16px;color:var(--g);border-left:4px solid var(--gold);padding-left:8px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center}
+.row label.t{font-size:13px;color:var(--mut);min-width:64px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0}
+.chip span{display:inline-block;padding:6px 12px;border:1px solid #ccc;border-radius:999px;font-size:14px;cursor:pointer;user-select:none;background:#fafafa}
+.chip input:checked+span{background:var(--g2);color:#fff;border-color:var(--g2)}
+.chip small{opacity:.75;margin-left:3px;font-size:11px}
+.num{display:inline-flex;align-items:center;border:1px solid #ccc;border-radius:8px;overflow:hidden}
+.num button{border:0;background:#eee;width:34px;height:34px;font-size:18px;cursor:pointer}
+.num b{min-width:34px;text-align:center}
+input[type=number]{width:90px;padding:6px;border:1px solid #ccc;border-radius:8px;font-size:15px}
+.total{text-align:center;padding:10px 0}
+.total .n{font-size:56px;font-weight:800;color:var(--g);line-height:1}
+.total .u{color:var(--mut);font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:5px 4px;border-bottom:1px solid #eee;text-align:left}
+td:last-child,th:last-child{text-align:right}
+.pay{background:#f7fbf8;border:1px solid #cfe6d8;border-radius:8px;padding:8px;margin-top:8px;font-size:14px}
+.pay div{display:flex;justify-content:space-between;padding:2px 0}
+.pay .big{font-weight:700;color:var(--g);border-top:1px dashed #9cc;margin-top:4px;padding-top:6px}
+button.reset{width:100%;padding:10px;border:0;border-radius:8px;background:#eee;font-size:14px;cursor:pointer;margin-top:10px}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
+footer{max-width:920px;margin:0 auto;padding:4px 16px 28px;font-size:12px;color:var(--mut)}
+details summary{cursor:pointer;color:var(--g);font-size:14px}
+</style>
+</head>
+<body>
+<header><h1>🀄 麻將台數計算器</h1><p>台灣 16 張・勾選即算・自動結算每家金額</p></header>
+<main>
+<div>
+ <div class="card"><h2>基本設定</h2>
+  <div class="row"><label class="t">底</label><input type="number" id="base" value="30" min="0" inputmode="numeric">
+   <label class="t">每台</label><input type="number" id="per" value="10" min="0" inputmode="numeric"></div>
+  <div class="row"><label class="t">胡法</label>
+   <label class="chip"><input type="radio" name="how" value="ron" checked><span>放槍</span></label>
+   <label class="chip"><input type="radio" name="how" value="zimo"><span>自摸</span></label></div>
+  <div class="row"><label class="t">莊家</label>
+   <label class="chip"><input type="radio" name="dealer" value="none" checked><span>莊家不在此局</span></label>
+   <label class="chip"><input type="radio" name="dealer" value="win"><span>我是莊家（胡）</span></label>
+   <label class="chip"><input type="radio" name="dealer" value="lose"><span>莊家放槍／被自摸</span></label></div>
+  <div class="row" id="streakRow"><label class="t">連莊數</label>
+   <div class="num"><button data-s="streak" data-d="-1">−</button><b id="streak">0</b><button data-s="streak" data-d="1">＋</button></div>
+   <span class="note" style="margin:0">連N拉N = 2N+1 台（含莊家1台）</span></div>
+ </div>
+
+ <div class="card"><h2>門風・字牌・花牌</h2>
+  <div class="row"><label class="t">風刻</label>
+   <label class="chip"><input type="checkbox" id="quan"><span>圈風刻<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="men"><span>門風刻<small>1</small></span></label></div>
+  <div class="row"><label class="t">三元刻</label>
+   <label class="chip"><input type="checkbox" id="d1"><span>中<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="d2"><span>發<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="d3"><span>白<small>1</small></span></label></div>
+  <div class="row"><label class="t">正花</label>
+   <div class="num"><button data-s="flower" data-d="-1">−</button><b id="flower">0</b><button data-s="flower" data-d="1">＋</button></div>
+   <span class="note" style="margin:0">對應自己座位的花，每張 1 台（最多 2）</span></div>
+  <div class="row"><label class="t">花組</label>
+   <label class="chip"><input type="checkbox" id="gang"><span>花槓<small id="gangv">2</small></span></label>
+   <label class="chip"><input type="checkbox" id="eight"><span>八仙過海<small>8</small></span></label></div>
+ </div>
+
+ <div class="card"><h2>手牌狀態</h2>
+  <div class="row">
+   <label class="chip"><input type="checkbox" id="menqing"><span>門清<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="du"><span>獨聽<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="quanqiu"><span>全求<small>2</small></span></label>
+   <label class="chip"><input type="checkbox" id="gshk"><span>槓上開花<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="hdly"><span>海底撈月<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="hdly2"><span>河底撈魚<small>1</small></span></label>
+   <label class="chip"><input type="checkbox" id="qg"><span>搶槓<small>1</small></span></label>
+  </div>
+  <div class="row"><label class="t">暗刻</label>
+   <label class="chip"><input type="radio" name="an" value="0" checked><span>無</span></label>
+   <label class="chip"><input type="radio" name="an" value="2"><span>三暗刻<small>2</small></span></label>
+   <label class="chip"><input type="radio" name="an" value="5"><span>四暗刻<small>5</small></span></label>
+   <label class="chip"><input type="radio" name="an" value="8"><span>五暗刻<small>8</small></span></label></div>
+  <div class="row"><label class="t">開局胡</label>
+   <label class="chip"><input type="radio" name="hu0" value="" checked><span>無</span></label>
+   <label class="chip"><input type="radio" name="hu0" value="tian"><span>天胡<small>24</small></span></label>
+   <label class="chip"><input type="radio" name="hu0" value="di"><span>地胡<small>16</small></span></label>
+   <label class="chip"><input type="radio" name="hu0" value="ren"><span>人胡<small id="renv">8</small></span></label></div>
+ </div>
+
+ <div class="card"><h2>牌型（擇一）</h2>
+  <div class="row" id="shapes"></div>
+  <div class="note">選「大／小三元」會自動不重複計三元刻；「大／小四喜」同理不重複計風刻。</div>
+ </div>
+</div>
+
+<div class="sticky">
+ <div class="card"><h2>結果</h2>
+  <div class="total"><div class="n" id="tot">0</div><div class="u">台</div></div>
+  <table id="detail"></table>
+  <div class="pay" id="pay"></div>
+  <details style="margin-top:10px"><summary>桌規設定</summary>
+   <div class="row" style="margin-top:8px">
+    <label class="chip"><input type="checkbox" id="optGang1"><span>花槓只算 1 台</span></label>
+    <label class="chip"><input type="checkbox" id="optRen"><span>人胡改 16 台</span></label></div>
+  </details>
+  <button class="reset" id="reset">全部重設</button>
+  <div class="note">門清＋自摸合計 3 台（含不求人），不重複累加。實際以當桌約定為準。</div>
+ </div>
+</div>
+</main>
+<footer>台數規則參考台灣 16 張麻將通行算法（底＋台數×每台）。各地桌規略有差異，僅供參考。</footer>
+<script>
+const SHAPES=[["none","無特殊牌型",0],["ping","平胡",2],["peng","碰碰胡",4],["hun","混一色",4],["qing","清一色",8],["zi","字一色",16],["xs","小三元",4],["ds","大三元",8],["sx","小四喜",8],["dx","大四喜",16]];
+const S={streak:0,flower:0};
+const $=id=>document.getElementById(id);
+$("shapes").innerHTML=SHAPES.map((s,i)=>`<label class="chip"><input type="radio" name="shape" value="${s[0]}" ${i==0?"checked":""}><span>${s[1]}${s[2]?`<small>${s[2]}</small>`:""}</span></label>`).join("");
+const val=n=>document.querySelector(`input[name=${n}]:checked`).value;
+const ck=id=>$(id).checked;
+function calc(){
+ const how=val("how"),dealer=val("dealer"),shape=val("shape"),an=+val("an"),hu0=val("hu0");
+ $("streakRow").style.display=dealer==="none"?"none":"flex";
+ const zimo=how==="zimo";
+ const items=[];const add=(n,t)=>{if(t>0)items.push([n,t])};
+ if(zimo&&ck("menqing"))add("門清自摸",3);else{if(zimo)add("自摸",1);if(ck("menqing"))add("門清",1)}
+ if(ck("du"))add("獨聽",1);
+ if(ck("quanqiu"))add("全求",2);
+ if(ck("gshk"))add("槓上開花",1);
+ if(ck("hdly"))add("海底撈月",1);
+ if(ck("hdly2"))add("河底撈魚",1);
+ if(ck("qg"))add("搶槓",1);
+ const noWind=shape==="sx"||shape==="dx",noDrag=shape==="xs"||shape==="ds";
+ if(!noWind){if(ck("quan"))add("圈風刻",1);if(ck("men"))add("門風刻",1)}
+ if(!noDrag){const n=["d1","d2","d3"].filter(ck).length;add("三元刻 ×"+n,n)}
+ add("正花 ×"+S.flower,S.flower);
+ if(ck("gang"))add("花槓",ck("optGang1")?1:2);
+ if(ck("eight"))add("八仙過海",8);
+ const sh=SHAPES.find(s=>s[0]===shape);if(sh&&sh[2])add(sh[1],sh[2]);
+ if(an)add({2:"三暗刻",5:"四暗刻",8:"五暗刻"}[an],an);
+ if(hu0==="tian")add("天胡",24);if(hu0==="di")add("地胡",16);if(hu0==="ren")add("人胡",ck("optRen")?16:8);
+ const hand=items.reduce((a,b)=>a+b[1],0);
+ const dealerTai=1+2*S.streak;
+ const base=+$("base").value||0,per=+$("per").value||0;
+ const fmt=n=>n.toLocaleString();
+ let tot=hand,html="",pay="";
+ const amt=t=>base+t*per;
+ let rows=items.slice();
+ if(dealer==="win"){rows.push(["莊家＋連莊（"+(S.streak?`連${S.streak}拉${S.streak}`:"做莊")+"）",dealerTai]);tot+=dealerTai}
+ html=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]} 台</td></tr>`).join("")||`<tr><td colspan=2 style="color:#999">尚未勾選任何台</td></tr>`;
+ if(dealer==="lose")html+=`<tr><td>莊家付款時另加（莊＋連莊）</td><td>+${dealerTai} 台</td></tr>`;
+ $("tot").textContent=dealer==="lose"?hand+" ~ "+(hand+dealerTai):tot;
+ $("detail").innerHTML=html;
+ if(!zimo){
+  const t=dealer==="lose"?hand+dealerTai:tot;
+  pay=`<div><span>放槍者付</span><span>${base} + ${t}×${per}</span></div><div class="big"><span>共收</span><span>${fmt(amt(t))}</span></div>`;
+ }else{
+  if(dealer==="lose"){
+   const a=amt(hand+dealerTai),b=amt(hand);
+   pay=`<div><span>莊家付</span><span>${fmt(a)}</span></div><div><span>其他兩家各付</span><span>${fmt(b)}</span></div><div class="big"><span>共收</span><span>${fmt(a+2*b)}</span></div>`;
+  }else{
+   const a=amt(tot);
+   pay=`<div><span>三家各付</span><span>${base} + ${tot}×${per} = ${fmt(a)}</span></div><div class="big"><span>共收</span><span>${fmt(a*3)}</span></div>`;
+  }
+ }
+ $("pay").innerHTML=pay;
+ $("gangv").textContent=ck("optGang1")?1:2;$("renv").textContent=ck("optRen")?16:8;
+ localStorage.setItem("mj_bp",JSON.stringify([base,per]));
+}
+document.addEventListener("click",e=>{const b=e.target.closest("button[data-s]");if(!b)return;
+ const k=b.dataset.s,d=+b.dataset.d;S[k]=Math.max(0,Math.min(k==="flower"?2:20,S[k]+d));$(k).textContent=S[k];calc()});
+document.addEventListener("input",calc);document.addEventListener("change",calc);
+$("reset").onclick=()=>{document.querySelectorAll("input[type=checkbox]").forEach(i=>i.checked=false);
+ document.querySelectorAll("input[type=radio]").forEach(i=>{i.checked=i.defaultChecked});S.streak=0;S.flower=0;$("streak").textContent=0;$("flower").textContent=0;calc()};
+try{const v=JSON.parse(localStorage.getItem("mj_bp"));if(v){$("base").value=v[0];$("per").value=v[1]}}catch(e){}
+calc();
+</script>
+</body>
+</html>
